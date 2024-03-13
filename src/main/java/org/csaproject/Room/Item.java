@@ -1,4 +1,4 @@
-package org.csaproject.ClassRoom;
+package org.csaproject.Room;
 
 public class Item {
     private String ItemName;

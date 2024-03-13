@@ -1,7 +1,6 @@
 package org.csaproject.Person;
 
-import org.csaproject.ClassRoom.ClassRoom;
-import org.csaproject.ClassRoom.Item;
+import org.csaproject.Room.Item;
 
 import java.util.ArrayList;
 

@@ -3,235 +3,219 @@ package org.csaproject.UIMethods;
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.gui2.*;
-import com.googlecode.lanterna.gui2.dialogs.MessageDialog;
 import com.googlecode.lanterna.input.KeyStroke;
+import com.googlecode.lanterna.input.KeyType;
 import com.googlecode.lanterna.screen.Screen;
 import com.googlecode.lanterna.screen.TerminalScreen;
 import com.googlecode.lanterna.terminal.DefaultTerminalFactory;
 import com.googlecode.lanterna.terminal.Terminal;
-import org.csaproject.ClassRoom.ClassRoom;
-import org.csaproject.ClassRoom.Item;
+import org.csaproject.Room.Room;
+import org.csaproject.Room.Item;
 import org.csaproject.Person.Person;
+import org.csaproject.Layout.Floor;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 public class UI {
     private int prevX;
     private int prevY;
-    private char[][] classLayout;
     private int[][] interactableObjectsMap;
-    private ClassRoom classRoom;
+    private Room room;
     private Person person;
+    private Floor floor;
+    private char[][] classLayout;
+    private Screen screen;
+    private boolean graphicUIActive;
+    private Terminal terminal;
 
 
-    public UI (ClassRoom classRoom, Person person) {
-        this.classLayout = classRoom.getClassLayout();
-        this.interactableObjectsMap = classRoom.getInteractableObjectsMap();
-        this.classRoom = classRoom;
+    public UI(Floor floor, Person person) {
+        this.floor = floor;
         this.person = person;
-
+        classLayout = floor.getFloorSpaceLayout();
+        interactableObjectsMap = floor.getInteractableObjectsMap();
     }
 
-    public Screen getScreen() throws IOException {
-        Terminal terminal = new DefaultTerminalFactory().createTerminal();
-        return new TerminalScreen(terminal);
+    public void init() throws IOException {
+        DefaultTerminalFactory defaultTerminalFactory = new DefaultTerminalFactory();
+        Terminal terminal = defaultTerminalFactory.createTerminal();
+        Screen screen = new TerminalScreen(terminal);
+        this.screen = screen;
+        this.terminal = terminal;
+        initrender();
     }
 
-    public boolean buildUI(Screen screen) throws IOException, InterruptedException {
-        int stoppingItem = 0;
-        screen.startScreen();
+    public Screen getScreen() {
+        return screen;
+    }
 
-        final WindowBasedTextGUI textGUI = new MultiWindowTextGUI(screen);
+    public Screen startKeyListening() throws IOException {
+        KeyStroke keyStroke = screen.pollInput();
 
-
-        screen.doResizeIfNecessary();
-
-        // Get the terminal size
-        TerminalSize terminalSize = screen.getTerminalSize();
-
-        // Calculate 80% of the terminal width for the viewPanel
-        int viewPanelWidth = (int) (terminalSize.getColumns() * 0.8);
-
-        // Calculate 20% of the terminal width for the secondaryPanel
-        int secondaryPanelWidth = terminalSize.getColumns() - viewPanelWidth;
-
-        // Create window to hold the panel
-        BasicWindow window = new BasicWindow();
-        window.setHints(Arrays.asList(Window.Hint.CENTERED, Window.Hint.EXPANDED));
-
-        // Create panels to hold components
-        Panel mainPanel = new Panel();
-        mainPanel.setLayoutManager(new LinearLayout(Direction.HORIZONTAL));
-
-        Panel viewPanel = new Panel();
-        mainPanel.addComponent(viewPanel.withBorder(Borders.singleLine("View")));
-        viewPanel.setPreferredSize(new TerminalSize(viewPanelWidth, terminalSize.getRows()));
-
-        ArrayList<Label> Map = update();
-        for (Label label : Map) {
-            viewPanel.addComponent(label);
-        }
-
-        Panel secondaryPanel = new Panel();
-        secondaryPanel.setLayoutManager(new LinearLayout(Direction.VERTICAL));
-
-        Panel controlsPanel = new Panel();
-        secondaryPanel.addComponent(controlsPanel.withBorder(Borders.singleLine("Controls")));
-        controlsPanel.setPreferredSize(new TerminalSize(secondaryPanelWidth, (int) (terminalSize.getRows() * 0.7)));
-        new Label("W - Forward").addTo(controlsPanel);
-        new Label("A - Left").addTo(controlsPanel);
-        new Label("S - Backward").addTo(controlsPanel);
-        new Label("D - Right").addTo(controlsPanel);
-        new Label("E - Interact").addTo(controlsPanel);
-        new Label("Esc - Exit Menu").addTo(controlsPanel);
-
-
-        Panel inventoryPanel = new Panel();
-        secondaryPanel.addComponent(inventoryPanel.withBorder(Borders.singleLine("Inventory")));
-        inventoryPanel.setPreferredSize(new TerminalSize(secondaryPanelWidth, (int) (terminalSize.getRows() * 0.3)));
-
-        //Print Inventory into the Inventory Panel
-        for (int i = 0; i < person.getItemList().size(); i++) {
-            new Label(person.getItemList().get(i).getItemName()).addTo(inventoryPanel);
-        }
-
-        mainPanel.addComponent(secondaryPanel, LinearLayout.createLayoutData(LinearLayout.Alignment.Fill));
-
-
-        mainPanel.addComponent(secondaryPanel);
-
-        window.setComponent(mainPanel.withBorder(Borders.singleLine("Main Panel")));
-
-        screen.refresh();
-
-        // Create gui and start gui
-        MultiWindowTextGUI gui = new MultiWindowTextGUI(screen, new DefaultWindowManager(), new EmptySpace(TextColor.ANSI.BLUE));
-
-        gui.addWindow(window);
-
-        screen.refresh();
-
-        boolean running = true;
-        while (running) {
-            gui.updateScreen();
-            KeyStroke keyStroke = screen.pollInput();
-
-            if (keyStroke != null) {
-                switch (keyStroke.getKeyType()) {
-                    case Escape:
-                        running = false;
-                        break;
-                    case ArrowUp:
-                        prevX = person.getPosX();
+        if (keyStroke != null) {
+            switch (keyStroke.getKeyType()) {
+                case Escape:
+                    break;
+                case ArrowUp:
+                    prevX = person.getPosX();
+                    prevY = person.getPosY();
+                    person.moveUp();
+                    break;
+                case ArrowDown:
+                    prevX = person.getPosX();
+                    prevY = person.getPosY();
+                    person.moveDown();
+                    break;
+                case ArrowLeft:
+                    prevX = person.getPosX();
+                    prevY = person.getPosY();
+                    person.moveLeft();
+                    break;
+                case ArrowRight:
+                    prevX = person.getPosX();
+                    prevY = person.getPosY();
+                    person.moveRight();
+                    break;
+                case F5:
+                    graphicUIActive = !graphicUIActive;
+                    System.out.println(graphicUIActive);
+                    if (!graphicUIActive) {
+                        terminal.enterPrivateMode();
+                        System.out.println("Graphic UI Active");
+                        terminal.enterPrivateMode();
+                    } else {
+                        terminal.exitPrivateMode();
+                    }
+                    break;
+                case Character:
+                    if (keyStroke.getCharacter() == 'w') {
                         prevY = person.getPosY();
+                        prevX = person.getPosX();
                         person.moveUp();
-                        break;
-                    case ArrowDown:
-                        prevX = person.getPosX();
+                    } else if (keyStroke.getCharacter() == 's') {
                         prevY = person.getPosY();
+                        prevX = person.getPosX();
                         person.moveDown();
-                        break;
-                    case ArrowLeft:
+                    } else if (keyStroke.getCharacter() == 'a') {
                         prevX = person.getPosX();
                         prevY = person.getPosY();
                         person.moveLeft();
-                        break;
-                    case ArrowRight:
+                    } else if (keyStroke.getCharacter() == 'd') {
                         prevX = person.getPosX();
                         prevY = person.getPosY();
                         person.moveRight();
-                        break;
-                    case Character:
-                        if (keyStroke.getCharacter() == 'w') {
-                            prevY = person.getPosY();
-                            prevX = person.getPosX();
-                            person.moveUp();
-                        } else if (keyStroke.getCharacter() == 's') {
-                            prevY = person.getPosY();
-                            prevX = person.getPosX();
-                            person.moveDown();
-                        } else if (keyStroke.getCharacter() == 'a') {
-                            prevX = person.getPosX();
-                            prevY = person.getPosY();
-                            person.moveLeft();
-                        } else if (keyStroke.getCharacter() == 'd') {
-                            prevX = person.getPosX();
-                            prevY = person.getPosY();
-                            person.moveRight();
-                        } else if (keyStroke.getCharacter() == 'e') {
-                            int[] interacted = interaction(textGUI);
-                            if (interacted[0] == 0) {
-                                running = false;
-
+                    } else if (keyStroke.getCharacter() == 'e') {
+                        if (interactableObjectsMap[person.getPosY()][person.getPosX()] == -5) {
+                            if (interactableObjectsMap[person.getPosY()][person.getPosX() + 1] == -1) {
+                                int classIndex = interactableObjectsMap[person.getPosY()][person.getPosX() + 2];
+                                floor.getRoom(classIndex - 1);
+                            } else if (interactableObjectsMap[person.getPosY()][person.getPosX() - 1] == -1) {
+                                int classIndex = interactableObjectsMap[person.getPosY()][person.getPosX() - 2];
+                                floor.getRoom(classIndex - 1);
+                            } else if (interactableObjectsMap[person.getPosY() + 1][person.getPosX()] == -1) {
+                                int classIndex = interactableObjectsMap[person.getPosY() + 2][person.getPosX()];
+                                floor.getRoom(classIndex - 1);
+                            } else if (interactableObjectsMap[person.getPosY() - 1][person.getPosX()] == -1) {
+                                int classIndex = interactableObjectsMap[person.getPosY() - 2][person.getPosX()];
+                                floor.getRoom(classIndex - 1);
                             }
                         }
                         break;
+                    }
+                    return screen;
+            }
+        }
+        return screen;
+    }
+
+    /*private char[][] initrender() {
+        char[][] Map = new char[classLayout.length][];
+        char[][] renderedMap = new char[26][13];
+
+        int positionx = person.getPosX();
+        int positiony = person.getPosY();
+
+        for (int i = 0; i < classLayout.length; i++) {
+            Map[i] = new char[classLayout[i].length];
+            for (int j = 0; j < classLayout[i].length; j++) {
+                if (i == person.getPosY() && j == person.getPosX()) {
+                    Map[i][j] = '*';
+                } else {
+                    Map[i][j] = classLayout[i][j];
                 }
-                viewPanel.removeAllComponents();
-                Map = update();
-                for (Label label : Map) {
-                    viewPanel.addComponent(label);
+            }
+        }
+        return renderedMap;
+    }*/
+
+    private char[][] initrender() {
+        char[][] Map = new char[classLayout.length][];
+        char[][] renderedMap = new char[13][26];
+
+        int positionx = person.getPosX();
+        int positiony = person.getPosY();
+        int starx = 0;
+        int stary = 0;
+
+        for (int i = 0; i < classLayout.length; i++) {
+            Map[i] = new char[classLayout[i].length];
+            for (int j = 0; j < classLayout[i].length; j++) {
+                if (i == person.getPosY() && j == person.getPosX()) {
+                    Map[i][j] = '*';
+                    starx = i;
+                    stary = j;
+                } else {
+                    Map[i][j] = classLayout[i][j];
                 }
-                new Label(person.getPosX() + " " + prevY).addTo(inventoryPanel);
             }
         }
 
-        screen.stopScreen();
-        return running;
+
+        // Copy the Map to the renderedMap with the star in the 7th row
+        for (int i = 0; i < renderedMap.length; i++) {
+            for (int j = 0; j < renderedMap[i].length; j++) {
+                renderedMap[i][j] = Map[i][stary - 13 + j];
+            }
+        }
+
+        return renderedMap;
     }
 
-    public ArrayList<Label> update() throws IOException, InterruptedException {
-        ArrayList<Label> Map = new ArrayList<>();
+
+
+
+    public char[][] render() throws IOException, InterruptedException {
+        char[][] Map = new char[classLayout.length][];
         if (!validMove()) {
             person.setPosX(prevX);
             person.setPosY(prevY);
-            update();
+            render();
         }
         for (int i = 0; i < classLayout.length; i++) {
-            StringBuilder rowString = new StringBuilder();
+            Map[i] = new char[classLayout[i].length];
             for (int j = 0; j < classLayout[i].length; j++) {
                 if (i == person.getPosY() && j == person.getPosX()) {
-                    rowString.append('*').append(" ");
+                    Map[i][j] = '*';
+                } else if (Map[i][j] == 'h') {
+                    Map[i][j] = ' ';
                 } else {
-                    rowString.append(classLayout[i][j]).append(" ");
+                    Map[i][j] = classLayout[i][j];
                 }
             }
-            Map.add(new Label(rowString.toString()));
         }
-
         return Map;
     }
+
 
     public boolean validMove() {
         return  (interactableObjectsMap[person.getPosY()][person.getPosX()] == 0 ||
                 interactableObjectsMap[person.getPosY()][person.getPosX()] == -4 ||
                 interactableObjectsMap[person.getPosY()][person.getPosX()] == -5);
     }
-
-    public int[] interaction(WindowBasedTextGUI textGUI) throws IOException, InterruptedException {
-        int[] interacted = new int[2];
-
-        if (interactableObjectsMap[person.getPosY() + 1][person.getPosX()] > 0) {
-            Item interactedItem = classRoom.getItem((interactableObjectsMap[person.getPosY() + 1][person.getPosX()]) - 1);
-            classRoom.getInteraction(interactedItem.getItemID() - 1).dialogInteract(textGUI.getScreen());
-            if (classRoom.getInteraction(interactedItem.getItemID() - 1).isTextBasedInteraction()) {
-                interacted[0] = 1;
-            }
-            interacted[1] = interactedItem.getItemID();
-        } else if (interactableObjectsMap[person.getPosY() - 1][person.getPosX()] > 0) {
-            MessageDialog.showMessageDialog(textGUI, classRoom.getItem((interactableObjectsMap[person.getPosY() - 1][person.getPosX()]) - 1).getItemName(), classRoom.getItem((interactableObjectsMap[person.getPosY() - 1][person.getPosX()]) - 1).getItemDescription());;
-        } else if (interactableObjectsMap[person.getPosY()][person.getPosX() + 1] > 0) {
-            MessageDialog.showMessageDialog(textGUI, classRoom.getItem((interactableObjectsMap[person.getPosY()][person.getPosX() + 1]) - 1).getItemName(), classRoom.getItem((interactableObjectsMap[person.getPosY()][person.getPosX() + 1]) - 1).getItemDescription());
-        } else if (interactableObjectsMap[person.getPosY()][person.getPosX() - 1] > 0) {
-            MessageDialog.showMessageDialog(textGUI, classRoom.getItem((interactableObjectsMap[person.getPosY()][person.getPosX() - 1]) - 1).getItemName(), classRoom.getItem((interactableObjectsMap[person.getPosY()][person.getPosX() - 1]) - 1).getItemDescription());
-        }
-
-        return interacted;
-    }
-
-    public static void doNothing() {
-    }
 }
+

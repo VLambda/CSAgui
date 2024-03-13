@@ -1,11 +1,9 @@
-package org.csaproject.ClassRoom;
+package org.csaproject.Room;
 
 import com.googlecode.lanterna.gui2.MultiWindowTextGUI;
 import com.googlecode.lanterna.gui2.WindowBasedTextGUI;
 import com.googlecode.lanterna.gui2.dialogs.MessageDialog;
 import com.googlecode.lanterna.screen.Screen;
-
-import java.util.ArrayList;
 
 public class Interaction {
     private boolean isTextBasedInteraction;

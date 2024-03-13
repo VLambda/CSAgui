@@ -1,11 +1,11 @@
-package org.csaproject.ClassRoom;
+package org.csaproject.Room;
 
 import org.csaproject.Person.Person;
 
 import java.util.ArrayList;
 
 
-public class ClassRoom {
+public class Room {
     private int RoomNum;
     private String RoomName;
     private char[][] classLayout;
@@ -13,7 +13,7 @@ public class ClassRoom {
     private ArrayList<Item> itemList;
     private ArrayList<Interaction> interactionList;
 
-    public ClassRoom(int RoomNum, String RoomName, char[][] classLayout, int[][] interactableObjectsMap, ArrayList<Item> itemList, ArrayList<Interaction> interactionList) {
+    public Room(int RoomNum, String RoomName, char[][] classLayout, int[][] interactableObjectsMap, ArrayList<Item> itemList, ArrayList<Interaction> interactionList) {
         this.RoomNum = RoomNum;
         this.RoomName = RoomName;
         this.classLayout = classLayout;
